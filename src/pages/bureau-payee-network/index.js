@@ -1,13 +1,6 @@
 import React from 'react'
 import * as d3 from 'd3'
-import {
-  Graph,
-  ManyBodyForce,
-  LinkForce,
-  PositionForce,
-  Simulation,
-  ForceDirectedEdgeBundling
-} from 'egraph'
+import { Graph, Simulation, NodeGeometry } from 'egraph'
 
 const BureauPayeeNetwork = () => {
   const renderer = React.useRef()
@@ -46,29 +39,6 @@ const BureauPayeeNetwork = () => {
         graph.addEdge(link.source, link.target, link)
       }
 
-      const manyBodyForce = new ManyBodyForce()
-      // manyBodyForce.strength = () => -50
-      const linkForce = new LinkForce()
-      const positionForce = new PositionForce()
-      positionForce.x = () => 0
-      positionForce.y = () => 0
-
-      const simulation = new Simulation()
-      simulation.add(manyBodyForce)
-      simulation.add(linkForce)
-      simulation.add(positionForce)
-      const layout = simulation.start(graph)
-
-      const edgeBundling = new ForceDirectedEdgeBundling()
-      const lines = edgeBundling.call(graph, layout.nodes)
-
-      data.nodes.forEach((node, i) => {
-        Object.assign(node, layout.nodes[i])
-      })
-      data.links.forEach((link, i) => {
-        link.bends = lines[i].bends.map(({ x, y }) => [x, y])
-      })
-
       const nodeSizeScale = d3
         .scaleSqrt()
         .domain(d3.extent(data.nodes, (node) => node.count))
@@ -99,13 +69,38 @@ const BureauPayeeNetwork = () => {
         link.strokeOpacity = 0.5
       }
 
+      const simulation = Simulation.basic()
+      simulation.iterations = 5000
+      const context = simulation.build(graph)
+      const points = new NodeGeometry(graph)
+
+      const draw = () => {
+        if (context.isFinished()) {
+          // const edgeBundling = new ForceDirectedEdgeBundling()
+          // const lines = edgeBundling.call(graph, layout.nodes)
+          // data.links.forEach((link, i) => {
+          //   link.bends = lines[i].bends.map(({ x, y }) => [x, y])
+          // })
+          return
+        }
+        window.requestAnimationFrame(draw)
+        context.step(points)
+        for (const u of graph.nodes()) {
+          const node = graph.node(u)
+          node.x = points.x(u)
+          node.y = points.y(u)
+        }
+        renderer.current.update()
+      }
+
       renderer.current.load(data)
+      draw()
     })()
   }, [])
   return (
     <section className='section'>
       <div className='container'>
-        <eg-renderer ref={renderer} width='2000' height='2000'></eg-renderer>
+        <eg-renderer ref={renderer} width='2000' height='2000' />
       </div>
     </section>
   )
