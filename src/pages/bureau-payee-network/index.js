@@ -1,6 +1,6 @@
 import React from 'react'
 import * as d3 from 'd3'
-import { Graph, Simulation, NodeGeometry } from 'egraph'
+import { Graph, SimulationBuilder, ForceDirectedEdgeBundling } from 'egraph'
 
 const BureauPayeeNetwork = () => {
   const renderer = React.useRef()
@@ -69,26 +69,25 @@ const BureauPayeeNetwork = () => {
         link.strokeOpacity = 0.5
       }
 
-      const simulation = Simulation.basic()
-      simulation.iterations = 5000
-      const context = simulation.build(graph)
-      const points = new NodeGeometry(graph)
+      const builder = SimulationBuilder.defaultSetting()
+      const simulation = builder.build(graph)
 
       const draw = () => {
-        if (context.isFinished()) {
-          // const edgeBundling = new ForceDirectedEdgeBundling()
-          // const lines = edgeBundling.call(graph, layout.nodes)
-          // data.links.forEach((link, i) => {
-          //   link.bends = lines[i].bends.map(({ x, y }) => [x, y])
-          // })
+        if (simulation.isFinished()) {
+          const edgeBundling = new ForceDirectedEdgeBundling()
+          const lines = edgeBundling.call(graph, data.nodes)
+          data.links.forEach((link, i) => {
+            link.bends = lines[i].bends.map(({ x, y }) => [x, y])
+          })
+          renderer.current.update()
           return
         }
         window.requestAnimationFrame(draw)
-        context.step(points)
+        simulation.stepN(10)
         for (const u of graph.nodes()) {
           const node = graph.node(u)
-          node.x = points.x(u)
-          node.y = points.y(u)
+          node.x = simulation.x(u)
+          node.y = simulation.y(u)
         }
         renderer.current.update()
       }
