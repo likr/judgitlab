@@ -37,7 +37,7 @@ const options = {
   devServer: {
     historyApiFallback: true,
     contentBase: path.join(__dirname, 'public'),
-    port: 8888
+    port: 8889
   },
   mode: process.env.NODE_ENV || 'development'
 }

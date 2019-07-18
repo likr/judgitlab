@@ -5,6 +5,7 @@ import { createBrowserHistory } from 'history'
 
 import RootPage from './pages/root'
 import BureauPayeeNetwork from './pages/bureau-payee-network'
+import ProjectNetwork from './pages/project-network'
 
 const history = createBrowserHistory()
 
@@ -14,6 +15,7 @@ const App = () => {
       <Switch>
         <Route path='/' component={RootPage} exact />
         <Route path='/bureau-payee-network' component={BureauPayeeNetwork} />
+        <Route path='/project-network' component={ProjectNetwork} />
       </Switch>
     </Router>
   )
