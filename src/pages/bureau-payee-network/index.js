@@ -83,7 +83,7 @@ const BureauPayeeNetwork = () => {
           return
         }
         window.requestAnimationFrame(draw)
-        simulation.stepN(10)
+        simulation.stepN(5)
         for (const u of graph.nodes()) {
           const node = graph.node(u)
           node.x = simulation.x(u)
@@ -99,7 +99,7 @@ const BureauPayeeNetwork = () => {
   return (
     <section className='section'>
       <div className='container'>
-        <eg-renderer ref={renderer} width='2000' height='2000' />
+        <eg-renderer ref={renderer} width='1000' height='1000' />
       </div>
     </section>
   )
