@@ -6,6 +6,7 @@ import { createBrowserHistory } from 'history'
 import RootPage from './pages/root'
 import BureauPayeeNetwork from './pages/bureau-payee-network'
 import ProjectNetwork from './pages/project-network'
+import DocumentSimilarity from './pages/document-similarity'
 
 const history = createBrowserHistory()
 
@@ -23,6 +24,9 @@ const App = () => {
               <li>
                 <Link to='/bureau-payee-network'>部局-支出先ネットワーク</Link>
               </li>
+              <li>
+                <Link to='/document-similarity'>事業間文章類似度</Link>
+              </li>
             </ul>
           </aside>
         </div>
@@ -34,6 +38,7 @@ const App = () => {
               component={BureauPayeeNetwork}
             />
             <Route path='/project-network' component={ProjectNetwork} />
+            <Route path='/document-similarity' component={DocumentSimilarity} />
           </Switch>
         </div>
       </div>
