@@ -6,17 +6,19 @@ class Chart extends React.Component {
       this.state={
         filterKeyword : '',
         policy : '',
+        money : '',
         hideMinistries : new Set(),
         transform : {x:0,y:0,k:1}
       };
       this.zoom = d3.zoom()
       .on('zoom',()=>{
-        const {x,y,k} = d3.event.transform
-        this.setState({transform:{x,y,k}})
+        // const {x,y,k} = d3.event.transform
+        // this.setState({transform:{x,y,k}})
+        this.setState({transform:d3.event.transform})
       })
     }
     componentDidMount(){
-      d3.select(this.refs.ff14).call(this.zoom)
+      d3.select(this.refs.ff14).call(this.zoom).on("dblclick.zoom", null)
     }
   
     render() {
@@ -43,19 +45,19 @@ class Chart extends React.Component {
         }
   
         const width = 1600
-        const height = 900
+        const height = 1000
         const textMargin = 100
         const labelMargin = 1100
         const xScale = d3.scaleLinear()
         .domain(d3.extent(data, (item) => item.x))
-        .range([-400, 400])
+        .range([-450,450])
         .nice()
         const yScale = d3.scaleLinear()
         .domain(d3.extent(data, (item) => item.y))
-        .range([400, -400])
+        .range([450, -450])
         .nice() 
         const moneyScale = d3.scaleLog()
-        .domain(d3.extent(data, (item) => (parseInt(item['29年度執行額'])+10)))
+        .domain(d3.extent(data, (item) => (+(item[this.state.money])+10)))
         .base(10)
         .range([0, 15])
         .nice()
@@ -63,16 +65,15 @@ class Chart extends React.Component {
         return (
           <div>
             <div className='refine'>
-              <form onSubmit={(event)=>{
-                  event.preventDefault()
-                  this.setState({filterKeyword:this.refs.search.value})
-                }}
-                >
-                <input ref='search'>
-                </input>
-                <button>絞り込み
-                </button>
-              </form>
+              <div>
+                <b>年度 : </b>
+                <select name="select" id="select" defalutValue="" onChange ={(event)=>{this.setState({money:event.target.value})}}>
+                  <option value=""></option>
+                  <option value="28年度執行額">28年度執行額</option>
+                  <option value="29年度執行額">29年度執行額</option>
+                  <option value="30年度執行額">30年度執行額</option>
+                  </select>
+              </div>
             </div>
             <div className='refine'>
               <div>
@@ -105,9 +106,21 @@ class Chart extends React.Component {
                 </select>
               </div>
             </div>
+            <div className='refine'>
+              <form onSubmit={(event)=>{
+                  event.preventDefault()
+                  this.setState({filterKeyword:this.refs.search.value})
+                }}
+                >
+                <input ref='search'>
+                </input>
+                <button>絞り込み
+                </button>
+              </form>
+            </div>
             <svg style = {{cursor:'move'}}ref = 'ff14' viewBox= {`0 0 ${width} ${height}`}>
-              <rect x="1" y="1" width={width-2} height={height-2}
-                fill="none" stroke="blue" stroke-width="2" />
+              {/* <rect x="1" y="1" width={width-2} height={height-2}
+                fill="none" stroke="blue" stroke-width="2" /> */}
               <g transform = {`translate(1400,0)`}>
                 <text x={0} y={76}>(千万円)</text>
                 {
@@ -153,14 +166,22 @@ class Chart extends React.Component {
                     </g>
                   })
                 }
-              </g>
+                </g>
+                <g transform = {`translate(1400,600)`}>
+                  <g style = {{cursor:'pointer'}}onClick={()=>
+                    //this.setState({transform:{x:0,y:0,k:1}})
+                    d3.select(this.refs.ff14).call(this.zoom.transform, d3.zoomIdentity.scale(1))
+                    }>
+                    <text x={0} y={76}>リセット</text>
+                  </g>
+                </g>
   
               <g transform = {`translate(${this.state.transform.x},${this.state.transform.y})scale(${this.state.transform.k})`}>
                 <g>
                   {
                     data.filter((v,cnt)=>{
                       return(
-                        !this.state.hideMinistries.has(v['府省庁'])
+                        this.state.hideMinistries.has(v['府省庁'])
                       )
                     }).filter((v,i)=>{
                       if(v['事業名'].includes(this.state.filterKeyword)===true){
@@ -181,13 +202,12 @@ class Chart extends React.Component {
                         <title>
                           {v['主要政策・施策']+','}
                           {v['事業名']+','}
-                          {parseInt(v['29年度執行額'])/10}
+                          {+(v[this.state.money])/10}
                         </title>
                         <circle style = {{cursor:'pointer'}}
-                          // cx={xScale(v.x)} cy={yScale(v.y)} 
-                          cx={v.x*7} cy={v.y*7}
-                          r={moneyScale(parseInt(v['29年度執行額'])+10)}
-                          // r='3'
+                          cx={xScale(v.x)} cy={yScale(v.y)} 
+                          // cx={v.x*7} cy={v.y*7}
+                          r={moneyScale(+(v[this.state.money])+10)}
                           fill={v.fillColor}
                           />
                       </g>
@@ -212,7 +232,7 @@ class Chart extends React.Component {
   
     componentDidMount() {
       const url =
-        "https://raw.githubusercontent.com/t-taiki0620/GE/master/tsne.json";
+        "./data/tsne.json";
       window
         .fetch(url)
         .then(response => response.json())
@@ -228,43 +248,16 @@ class Chart extends React.Component {
           <section className="section">
             <div className="container">
               <div className="content has-text-centered">
-                <h3>2019年度尾上ゼミ 情報科学研究1 課題制作</h3>
-                <h1>文章類似度から見た行政事業の関連度</h1>
-                <h4 className='up'>データの説明</h4>
-                <p align="left" className='new_line'>
-                  今回使用したデータは国が出している行政事業レビューシートの2018年度版のものをグラフ化したものです。<br />
-                  色が府省庁、大きさが事業の2017年度の執行額を表しています。</p>
-                <h4 className='up'>可視化の説明</h4>
-                <p align="left" className='new_line'>
-                  Reactを用いて作成しました。<br />
-                  文章間の類似度を計測できるdoc2vecを利用して行政事業レビューシート内のそれぞれの事業概要の文章類似度を測定しました。<br />
-                  doc2vecの利用にはPythonライブラリのgensimを用いました。<br />
-                  また文章を書き出したとき、英語などと違い、日本語は文章が単語に分かれていません。<br />
-                  そのため日本語の文章の類似度を測定する際には文章を単語ごとに分かち書きする必要があります。<br />
-                  それにはすでに日本語版wikipediaの文章を学習させたdoc2vevのモデルがあったため、そちらを利用しました。<br />
-                  こうして出来上がったデータをそのままネットワーク化しグラフにした際、あまり良い考察の得られる可視化ではなかったためtsneを用いて次元を削減しより見やすいデータにして可視化しました。
-                </p>
                 <div style={{ margin: "2em" }}>
                   {data&&
                     <Chart data={data} />
                     }
                 </div>
-                <h4 className='up'>可視化結果の考察</h4>
-                <p align="left" className='new_line'>
-                  分布を見ると厚生労働省などの広く分布しているものと右上、右下にある外務省や防衛省広く散布している中でも事業によっては集中しているものがあるのがわかります。<br />
-                  またその集中している事業のなかに先程の広く散布されている省庁のものがあります。<br />
-                  こういった事業は違う省庁でありながら似たような事業を行っている可能性があります。<br />
-                  また執行額から見ると多くの事業がほぼ変わらないのがわかります。<br />
-                  その中で厚生労働省の2つの事業が飛び抜けて多く使っているのがわかります<br />
-                </p>
               </div>
             </div>
           </section>
-          <footer className="footer">
-            <div className="content has-text-centered">
-              <p>&copy;2019 田中 太樹</p>
-            </div>
-          </footer>
+          {/* <footer className="footer">
+          </footer> */}
         </>
       );
     }
