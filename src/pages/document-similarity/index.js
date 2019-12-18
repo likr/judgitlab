@@ -6,7 +6,8 @@ class Chart extends React.Component {
       this.state={
         filterKeyword : '',
         policy : '',
-        money : '',
+        reportYear : '',
+        show : 'default',
         hideMinistries : new Set(),
         transform : {x:0,y:0,k:1}
       };
@@ -30,6 +31,7 @@ class Chart extends React.Component {
           ministries.add(node['府省庁'])
         }
         console.log(ministries)
+
         const policies = new Set()
         for(const node of data){
           policies.add(node['主要政策・施策'])
@@ -49,15 +51,15 @@ class Chart extends React.Component {
         const textMargin = 100
         const labelMargin = 1100
         const xScale = d3.scaleLinear()
-        .domain(d3.extent(data, (item) => item.x))
+        .domain(d3.extent(data, (item) => +(item.objective_x)))
         .range([-450,450])
         .nice()
         const yScale = d3.scaleLinear()
-        .domain(d3.extent(data, (item) => item.y))
+        .domain(d3.extent(data, (item) => +(item.objective_y)))
         .range([450, -450])
         .nice() 
         const moneyScale = d3.scaleLog()
-        .domain(d3.extent(data, (item) => (+(item[this.state.money])+10)))
+        .domain(d3.extent(data, (item) => (+(item['執行額'])+10)))
         .base(10)
         .range([0, 15])
         .nice()
@@ -67,11 +69,13 @@ class Chart extends React.Component {
             <div className='refine'>
               <div>
                 <b>年度 : </b>
-                <select name="select" id="select" defalutValue="" onChange ={(event)=>{this.setState({money:event.target.value})}}>
+                <select name="select" id="select" defalutValue="" onChange ={(event)=>{this.setState({reportYear:event.target.value})}}>
                   <option value=""></option>
-                  <option value="28年度執行額">28年度執行額</option>
-                  <option value="29年度執行額">29年度執行額</option>
-                  <option value="30年度執行額">30年度執行額</option>
+                  <option value="2015">27年度</option>
+                  <option value="2016">28年度</option>
+                  <option value="2017">29年度</option>
+                  <option value="2018">30年度</option>
+                  <option value="2019">31年度</option>
                   </select>
               </div>
             </div>
@@ -103,6 +107,17 @@ class Chart extends React.Component {
                   <option value="犯罪被害者等施策">犯罪被害者等施策</option>
                   <option value="クールジャパン">クールジャパン</option>
                   <option value="食育推進">食育推進</option>
+                </select>
+              </div>
+            </div>
+            <div className='refine'>
+              <div>
+                <b>表示方法 : </b>
+                <select name="select" id="select" defalutValue="default" onChange ={(event)=>{this.setState({show:event.target.value})}}>
+                  <option value="">default</option>
+                  <option value="up">up</option>
+                  <option value="down">down</option>
+                  <option value="none">none</option>
                 </select>
               </div>
             </div>
@@ -190,27 +205,103 @@ class Chart extends React.Component {
                       else{
                         return false
                       }
+                    // }).filter((v,i)=>{
+                    //   if(v['主要政策・施策'].includes(this.state.policy)===true){
+                    //     return true
+                    //   }
+                    //   else{
+                    //     return false
+                    //   }
                     }).filter((v,i)=>{
-                      if(v['主要政策・施策'].includes(this.state.policy)===true){
+                      if(v['公開年度'] === this.state.reportYear){
                         return true
                       }
                       else{
                         return false
                       }
                     }).map((v,i)=>{
-                      return <g key={i} transform = {`translate(500,${height/2})`}>
-                        <title>
-                          {v['主要政策・施策']+','}
-                          {v['事業名']+','}
-                          {+(v[this.state.money])/10}
-                        </title>
-                        <circle style = {{cursor:'pointer'}}
-                          cx={xScale(v.x)} cy={yScale(v.y)} 
-                          // cx={v.x*7} cy={v.y*7}
-                          r={moneyScale(+(v[this.state.money])+10)}
-                          fill={v.fillColor}
-                          />
-                      </g>
+                      if(this.state.show === 'default'){
+                        return <g key={i} transform = {`translate(500,${height/2})`}>
+                          <title>
+                            {v['主要政策・施策']+','}
+                            {v['事業名']+','}
+                            {+(v['執行額'])/10}
+                          </title>
+                          <circle style = {{cursor:'pointer'}}
+                            cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
+                            // cx={v.x*7} cy={v.y*7}
+                            r={moneyScale(+(v['執行額'])+10)}
+                            fill={v.fillColor}
+                            />
+                        </g>
+                      }
+                      else if(this.state.show === 'up'){
+                        for(const node of data){
+                          if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
+                            if(v['執行額']>node['執行額']){
+                              return <g key={i} transform = {`translate(500,${height/2})`}>
+                                <title>
+                                  {v['主要政策・施策']+','}
+                                  {v['事業名']+','}
+                                  {+(v['執行額'])/10}
+                                </title>
+                                <circle style = {{cursor:'pointer'}}
+                                  cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
+                                  // cx={v.x*7} cy={v.y*7}
+                                  r={moneyScale(+(v['執行額'])+10)}
+                                  fill={v.fillColor}
+                                  />
+                              </g>
+                            }
+                            break
+                          }
+                        }
+                      }
+                      else if(this.state.show === 'down'){
+                        for(const node of data){
+                          if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
+                            if(v['執行額']<node['執行額']){
+                              return <g key={i} transform = {`translate(500,${height/2})`}>
+                                <title>
+                                  {v['主要政策・施策']+','}
+                                  {v['事業名']+','}
+                                  {+(v['執行額'])/10}
+                                </title>
+                                <circle style = {{cursor:'pointer'}}
+                                  cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
+                                  // cx={v.x*7} cy={v.y*7}
+                                  r={moneyScale(+(v['執行額'])+10)}
+                                  fill={v.fillColor}
+                                  />
+                              </g>
+                            }
+                            break
+                          }
+                        }
+                      }
+                      // 翌年度にその事業がないときはどうしよう
+                      // else if(this.state.show === 'none'){
+                      //   for(const node of data){
+                      //     if(v['事業名'] === node['事業名']){
+                      //       if(v['執行額']<node['執行額']){
+                      //         return <g key={i} transform = {`translate(500,${height/2})`}>
+                      //           <title>
+                      //             {v['主要政策・施策']+','}
+                      //             {v['事業名']+','}
+                      //             {+(v['執行額'])/10}
+                      //           </title>
+                      //           <circle style = {{cursor:'pointer'}}
+                      //             cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
+                      //             // cx={v.x*7} cy={v.y*7}
+                      //             r={moneyScale(+(v['執行額'])+10)}
+                      //             fill={v.fillColor}
+                      //             />
+                      //         </g>
+                      //       }
+                      //       break
+                      //     }
+                      //   }
+                      // }
                     })
                   }
                 </g>
