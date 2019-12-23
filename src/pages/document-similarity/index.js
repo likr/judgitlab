@@ -52,7 +52,6 @@ class Chart extends React.Component {
         const height = 1000
         const textMargin = 100
         const labelMargin = 1100
-        var count = 0
         const xScale = d3.scaleLinear()
         .domain(d3.extent(data, (item) => +(item.objective_x)))
         .range([-450,450])
@@ -66,6 +65,78 @@ class Chart extends React.Component {
         .base(10)
         .range([0, 15])
         .nice()
+
+        const showData = new Array()
+        data.filter((v,cnt)=>{
+          return(
+            !this.state.hideMinistries.has(v['府省庁'])
+          )
+        }).filter((v,i)=>{
+          if(v['事業名'].includes(this.state.filterKeyword)===true){
+            return true
+          }
+          else{
+            return false
+          }
+        }).filter((v,i)=>{
+          if(this.state.policy === ""){
+            return true
+          }
+          else{
+            if(v['主要政策・施策'].includes(this.state.policy)===true){
+              return true
+            }
+            else{
+              return false
+            }
+          }
+        }).filter((v,i)=>{
+          if(v['公開年度'] === this.state.reportYear){
+            return true
+          }
+          else{
+            return false
+          }
+        }).map((v,i)=>{
+          if(this.state.show === 'default'){
+            showData.push(v)
+          }
+          //前年度に比べ執行額が増えたとき
+          else if(this.state.show === 'up'){
+            for(const node of data){
+              if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
+                if(v['執行額']>node['執行額']){
+                  showData.push(v)
+                }
+                break
+              }
+            }
+          }
+          //前年度に比べ執行額が減ったとき
+          else if(this.state.show === 'down'){
+            for(const node of data){
+              if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
+                if(v['執行額']<node['執行額']){
+                  showData.push(v)
+                }
+                break
+              }
+            }
+          }
+          // 翌年度にその事業がないとき
+          else if(this.state.show === 'none'){
+            const existYear = new Array()
+            for(const node of data){
+              if(projectIdIndex.get(v['プロジェクトID']) === projectIdIndex.get(node['プロジェクトID'])){
+                existYear.push(node['公開年度'])
+              }
+            }
+            // console.log(existYear)
+            if(!(existYear.includes((parseInt(v['公開年度'])+1).toString()))){
+              showData.push(v)
+            }
+          }
+        })
   
         return (
           <div>
@@ -139,7 +210,7 @@ class Chart extends React.Component {
             </div>
             <div>
               <div>
-              <b>事業数：{this.state.count}</b>
+              <b>事業数：{(showData.length).toString()}</b>
               </div>
             </div>
             <svg style = {{cursor:'move'}}ref = 'ff14' viewBox= {`0 0 ${width} ${height}`}>
@@ -172,7 +243,7 @@ class Chart extends React.Component {
                 {
                   Array.from(ministries).map((ministry,i)=>{
                     return <g key = {i} style = {{cursor:'pointer'}}onClick={()=>{
-                        const newSet = new Set(this.state.hideMinistries)
+                      const newSet = new Set(this.state.hideMinistries)
                         if(newSet.has(ministry)){
                           newSet.delete(ministry)
                         }else{
@@ -180,7 +251,7 @@ class Chart extends React.Component {
                         }
                         this.setState({hideMinistries:newSet})
                       }}
-                             >
+                      >
                       <circle 
                         cx={0} cy={`${i*30+textMargin}`}
                         r='10'
@@ -201,136 +272,23 @@ class Chart extends React.Component {
               <g transform = {`translate(${this.state.transform.x},${this.state.transform.y})scale(${this.state.transform.k})`}>
                 <g>
                   {
-                    data.filter((v,cnt)=>{
-                      return(
-                        !this.state.hideMinistries.has(v['府省庁'])
-                      )
-                    }).filter((v,i)=>{
-                      if(v['事業名'].includes(this.state.filterKeyword)===true){
-                        return true
-                      }
-                      else{
-                        return false
-                      }
-                    }).filter((v,i)=>{
-                      if(this.state.policy === ""){
-                        return true
-                      }
-                      else{
-                        if(v['主要政策・施策'].includes(this.state.policy)===true){
-                          return true
-                        }
-                        else{
-                          return false
-                        }
-                      }
-                    }).filter((v,i)=>{
-                      if(v['公開年度'] === this.state.reportYear){
-                        return true
-                      }
-                      else{
-                        return false
-                      }
-                    }).map((v,i)=>{
-                      if(this.state.show === 'default'){
-                        return <g key={i} transform = {`translate(500,${height/2})`}>
-                          <title>
-                            {v['府省庁']+', '}
-                            {v['主要政策・施策']+', '}
-                            {v['事業名']+', '}
-                            {+(v['執行額'])/10}
-                          </title>
-                          <circle style = {{cursor:'pointer'}}
-                            cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
-                            r={moneyScale(+(v['執行額'])+10)}
-                            fill={v.fillColor}
-                            />
-                          {count += 1}
-                        </g>
-                      }
-                      //前年度に比べ執行額が増えたとき
-                      else if(this.state.show === 'up'){
-                        for(const node of data){
-                          if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
-                            if(v['執行額']>node['執行額']){
-                              return <g key={i} transform = {`translate(500,${height/2})`}>
-                                <title>
-                                  {v['府省庁']+', '}
-                                  {v['主要政策・施策']+', '}
-                                  {v['事業名']+', '}
-                                  {+(v['執行額'])/10}
-                                </title>
-                                <circle style = {{cursor:'pointer'}}
-                                  cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
-                                  r={moneyScale(+(v['執行額'])+10)}
-                                  fill={v.fillColor}
-                                  />
-                                {count += 1}
-                              </g>
-                            }
-                            break
-                          }
-                        }
-                      }
-                      //前年度に比べ執行額が減ったとき
-                      else if(this.state.show === 'down'){
-                        for(const node of data){
-                          if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
-                            if(v['執行額']<node['執行額']){
-                              return <g key={i} transform = {`translate(500,${height/2})`}>
-                                <title>
-                                  {v['府省庁']+', '}
-                                  {v['主要政策・施策']+', '}
-                                  {v['事業名']+', '}
-                                  {+(v['執行額'])/10}
-                                </title>
-                                <circle style = {{cursor:'pointer'}}
-                                  cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
-                                  r={moneyScale(+(v['執行額'])+10)}
-                                  fill={v.fillColor}
-                                  />
-                                {count += 1}
-                              </g>
-                            }
-                            break
-                          }
-                        }
-                      }
-                      // 翌年度にその事業がないとき
-                      else if(this.state.show === 'none'){
-                        const existYear = new Array()
-                        for(const node of data){
-                          if(projectIdIndex.get(v['プロジェクトID']) === projectIdIndex.get(node['プロジェクトID'])){
-                            existYear.push(node['公開年度'])
-                          }
-                        }
-                        console.log(existYear)
-                        if(!(existYear.includes((parseInt(v['公開年度'])+1).toString()))){
-                          return <g key={i} transform = {`translate(500,${height/2})`}>
-                            <title>
-                              {v['府省庁']+', '}
-                              {v['主要政策・施策']+', '}
-                              {v['事業名']+', '}
-                              {+(v['執行額'])/10}
-                            </title>
-                            <circle style = {{cursor:'pointer'}}
-                              cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))}
-                              r={moneyScale(+(v['執行額'])+10)}
-                              fill={v.fillColor}
-                              />
-                            {count += 1}
-                          </g>
-                        }
-                      }
+                    showData.map((v,i)=>{
+                      return <g key={i} transform = {`translate(500,${height/2})`}>
+                        <title>
+                          {v['府省庁']+', '}
+                          {v['主要政策・施策']+', '}
+                          {v['事業名']+', '}
+                          {+(v['執行額'])/10}
+                        </title>
+                        <circle style = {{cursor:'pointer'}}
+                          cx={xScale(+(v.objective_x))} cy={yScale(+(v.objective_y))} 
+                          r={moneyScale(+(v['執行額'])+10)}
+                          fill={v.fillColor}
+                          />
+                      </g>
                     })
                   }
                 </g>
-              </g>
-              {/* 簡易的にsvg内で表示してる事業数を表示、理想はsvg外 */}
-              <g transform = {`translate(1400,550)`}>
-                {/* {this.setState({count:count})} */}
-                <text x={0} y={76}>{count.toString()}</text>
-                {count = 0}
               </g>
             </svg>
           </div>
