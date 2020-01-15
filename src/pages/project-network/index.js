@@ -1,80 +1,111 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import * as d3 from 'd3'
-import { Graph, SimulationBuilder, ForceDirectedEdgeBundling } from 'egraph'
+import { EgRenderer } from 'react-eg-renderer'
+import networkLayout from './network-layout'
 
-const BureauPayeeNetwork = () => {
-  const renderer = React.useRef()
-  React.useEffect(() => {
-    ;(async () => {
-      const request = await window.fetch('/data/project-network.json')
-      const data = await request.json()
-      const indices = new Map()
+const setColor = (data) => {
+  const ministries = Array.from(
+    new Set(data.nodes.map(({ ministry }) => ministry))
+  )
+  ministries.sort()
+  const colorScale = d3
+    .scaleSequential()
+    .domain([0, ministries.length - 1])
+    .interpolator(d3.interpolateRainbow)
+  const colors = new Map()
+  ministries.forEach((ministry, i) => {
+    colors.set(ministry, colorScale(i))
+  })
+  for (const node of data.nodes) {
+    node.fillColor = colors.get(node.ministry)
+  }
+}
 
-      data.links = data.links.filter((link) => link.similarity > 0.6)
+const setLabel = (data) => {
+  const words = new Set()
+  for (const node of data.nodes) {
+    for (const word of node.words) {
+      words.add(word)
+    }
+  }
+  const documentCount = {}
+  for (const word of words) {
+    documentCount[word] = 0
+  }
+  for (const node of data.nodes) {
+    for (const word of new Set(node.words)) {
+      documentCount[word] += 1
+    }
+  }
+  const idf = {}
+  for (const word of words) {
+    idf[word] = Math.log(words.size / documentCount[word])
+  }
+  for (const node of data.nodes) {
+    const nodeWords = Array.from(new Set(node.words))
+    nodeWords.sort((w1, w2) => idf[w2] - idf[w1])
+    node.label = nodeWords[0]
+  }
+}
 
-      data.nodes.forEach((node, i) => {
-        indices.set(node.id, i)
-        if (node.isBureau) {
-          node.bureau = node.id
-        }
-        if (node.isPayee) {
-          node.payee = node.id
-        }
+const setLinkStroke = (data) => {
+  const strokeWidthScale = d3
+    .scaleLinear()
+    .domain(d3.extent(data.links, (link) => link.weight))
+    .range([1, 5])
+  for (const link of data.links) {
+    link.strokeWidth = strokeWidthScale(link.weight)
+    link.strokeOpacity = link.weight >= 150 ? 0.7 : 0.3
+  }
+}
+
+const decorate = (data) => {
+  setColor(data)
+  setLabel(data)
+  setLinkStroke(data)
+}
+
+const RootPage = () => {
+  const [graph, setGraph] = useState({ nodes: [], links: [] })
+  const [selectedNode, setSelectedNode] = useState(null)
+
+  useEffect(() => {
+    window
+      .fetch('/data/project-network.json')
+      .then((response) => response.json())
+      .then((data) => networkLayout(data))
+      .then((data) => {
+        decorate(data)
+        setGraph(data)
       })
-
-      const graph = new Graph()
-      for (const node of data.nodes) {
-        graph.addNode(node.id, node)
-      }
-      for (const link of data.links) {
-        graph.addEdge(link.source, link.target, link)
-      }
-
-      const color = d3.scaleOrdinal(d3.schemePaired)
-      for (const node of data.nodes) {
-        node.strokeWidth = 0
-        node.fillColor = color(node.ministry)
-      }
-      for (const link of data.links) {
-        link.strokeColor = '#ccc'
-        link.strokeOpacity = 0.5
-      }
-
-      const builder = SimulationBuilder.defaultSetting()
-      const simulation = builder.build(graph)
-      simulation.iterations = 1000
-
-      const draw = () => {
-        if (simulation.isFinished()) {
-          const edgeBundling = new ForceDirectedEdgeBundling()
-          const lines = edgeBundling.call(graph, data.nodes)
-          data.links.forEach((link, i) => {
-            link.bends = lines[i].bends.map(({ x, y }) => [x, y])
-          })
-          renderer.current.update()
-          return
-        }
-        window.requestAnimationFrame(draw)
-        simulation.stepN(10)
-        for (const u of graph.nodes()) {
-          const node = graph.node(u)
-          node.x = simulation.x(u)
-          node.y = simulation.y(u)
-        }
-        renderer.current.update()
-      }
-
-      renderer.current.load(data)
-      draw()
-    })()
   }, [])
+
   return (
     <section className='section'>
       <div className='container'>
-        <eg-renderer ref={renderer} width='1000' height='1000' />
+        <div>
+          <p>府省庁：{selectedNode && selectedNode.ministry}</p>
+          <p>事業名：{selectedNode && selectedNode.projectName}</p>
+        </div>
+        <div>
+          <EgRenderer
+            data={graph}
+            width='960'
+            height='960'
+            node-id-property='id'
+            default-node-fill-opacity='0.5'
+            default-node-stroke-width='0'
+            default-node-label-font-size='8'
+            default-link-stroke-color='#888'
+            onNodeClick={({ id }) => {
+              const node = graph.nodes.find((node) => node.id === +id)
+              setSelectedNode(node)
+            }}
+          />
+        </div>
       </div>
     </section>
   )
 }
 
-export default BureauPayeeNetwork
+export default RootPage
