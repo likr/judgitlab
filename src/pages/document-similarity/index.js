@@ -104,8 +104,8 @@ class Chart extends React.Component {
           //前年度に比べ執行額が増えたとき
           else if(this.state.show === 'up'){
             for(const node of data){
-              if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
-                if(v['執行額']>node['執行額']){
+              if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
+                if(v['執行額']<node['執行額']){
                   showData.push(v)
                 }
                 break
@@ -115,8 +115,8 @@ class Chart extends React.Component {
           //前年度に比べ執行額が減ったとき
           else if(this.state.show === 'down'){
             for(const node of data){
-              if(v['事業名'] === node['事業名'] && parseInt(v['公開年度']) - parseInt(node['公開年度']) === 1){
-                if(v['執行額']<node['執行額']){
+              if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
+                if(node['執行額']<v['執行額']){
                   showData.push(v)
                 }
                 break
@@ -131,7 +131,7 @@ class Chart extends React.Component {
                 existYear.push(node['公開年度'])
               }
             }
-            // console.log(existYear)
+            //console.log(existYear)
             if(!(existYear.includes((parseInt(v['公開年度'])+1).toString()))){
               showData.push(v)
             }
