@@ -38,9 +38,10 @@
     "bulma": "^0.7.5",
     "d3": "^5.9.7",
     "eg-renderer": "^1.2.0",
-    "egraph": "^4.0.1-alpha.8",
+    "egraph": "^4.0.1-alpha.14",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-eg-renderer": "^1.5.0-alpha.5",
     "react-router": "^5.0.1",
     "react-router-dom": "^5.0.1"
   }

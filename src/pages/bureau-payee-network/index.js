@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import * as d3 from 'd3'
+import { EgRenderer } from 'react-eg-renderer'
 import { Graph, SimulationBuilder, ForceDirectedEdgeBundling } from 'egraph'
 
 const BureauPayeeNetwork = () => {
-  const renderer = React.useRef()
-  React.useEffect(() => {
+  const [graph, setGraph] = useState({ nodes: [], links: [] })
+
+  useEffect(() => {
     ;(async () => {
       const request = await window.fetch('/data/bureau-payee-network.json')
       const data = await request.json()
@@ -69,37 +71,25 @@ const BureauPayeeNetwork = () => {
         link.strokeOpacity = 0.5
       }
 
-      const builder = SimulationBuilder.defaultSetting()
-      const simulation = builder.build(graph)
-
-      const draw = () => {
-        if (simulation.isFinished()) {
-          const edgeBundling = new ForceDirectedEdgeBundling()
-          const lines = edgeBundling.call(graph, data.nodes)
-          data.links.forEach((link, i) => {
-            link.bends = lines[i].bends.map(({ x, y }) => [x, y])
-          })
-          renderer.current.update()
-          return
-        }
-        window.requestAnimationFrame(draw)
-        simulation.stepN(5)
-        for (const u of graph.nodes()) {
-          const node = graph.node(u)
-          node.x = simulation.x(u)
-          node.y = simulation.y(u)
-        }
-        renderer.current.update()
+      const builder = SimulationBuilder.defaultNonConnected()
+      const simulation = builder.start(graph)
+      for (const u of graph.nodes()) {
+        const node = graph.node(u)
+        node.x = simulation.x(u)
+        node.y = simulation.y(u)
       }
-
-      renderer.current.load(data)
-      draw()
+      const edgeBundling = new ForceDirectedEdgeBundling()
+      const lines = edgeBundling.call(graph, data.nodes)
+      data.links.forEach((link, i) => {
+        link.bends = lines[i].bends.map(({ x, y }) => [x, y])
+      })
+      setGraph(data)
     })()
   }, [])
   return (
     <section className='section'>
       <div className='container'>
-        <eg-renderer ref={renderer} width='1000' height='1000' />
+        <EgRenderer data={graph} width='1000' height='1000' />
       </div>
     </section>
   )
