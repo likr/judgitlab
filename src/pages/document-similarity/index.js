@@ -32,9 +32,24 @@ class Chart extends React.Component {
         const ministryIndex = new Map(
           Array.from(ministries).map((ministry,i)=>[ministry,i])
         )
-        for (const node of data){
-          const index = ministryIndex.get(node['府省庁'])
-          node.fillColor = d3.hsl(360*(index/ministries.size),0.5,0.5,0.6).toString()
+        if(this.state.show === 'default'){
+          for (const node of data){
+            const index = ministryIndex.get(node['府省庁'])
+            node.fillColor = d3.hsl(360*(index/ministries.size),0.5,0.5,0.6).toString()
+          }
+        }
+        else if(this.state.show === 'ministry'){
+          const clusters = new Set()
+          for (const node of data){
+            clusters.add(node.cluster)
+          }
+          const clusterIndex = new Map(
+            Array.from(clusters).map((cluster,i)=>[cluster,i])
+          )
+          for(const node of data){
+            const index = clusterIndex.get(node.cluster)
+            node.fillColor = d3.hsl(360*(index/clusters.size),0.5,0.5,0.6).toString()
+          }
         }
         const policies = new Set()
         for(const node of data){
@@ -98,44 +113,44 @@ class Chart extends React.Component {
             return false
           }
         }).map((v,i)=>{
-          if(this.state.show === 'default'){
+          if(this.state.show === 'default' || this.state.show === 'ministry'){
             showData.push(v)
           }
           //前年度に比べ執行額が増えたとき
-          else if(this.state.show === 'up'){
-            for(const node of data){
-              if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
-                if(v['執行額']<node['執行額']){
-                  showData.push(v)
-                }
-                break
-              }
-            }
-          }
+          // else if(this.state.show === 'up'){
+          //   for(const node of data){
+          //     if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
+          //       if(v['執行額']<node['執行額']){
+          //         showData.push(v)
+          //       }
+          //       break
+          //     }
+          //   }
+          // }
           //前年度に比べ執行額が減ったとき
-          else if(this.state.show === 'down'){
-            for(const node of data){
-              if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
-                if(node['執行額']<v['執行額']){
-                  showData.push(v)
-                }
-                break
-              }
-            }
-          }
+          // else if(this.state.show === 'down'){
+          //   for(const node of data){
+          //     if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
+          //       if(node['執行額']<v['執行額']){
+          //         showData.push(v)
+          //       }
+          //       break
+          //     }
+          //   }
+          // }
           // 翌年度にその事業がないとき
-          else if(this.state.show === 'none'){
-            const existYear = new Array()
-            for(const node of data){
-              if(projectIdIndex.get(v['プロジェクトID']) === projectIdIndex.get(node['プロジェクトID'])){
-                existYear.push(node['公開年度'])
-              }
-            }
-            //console.log(existYear)
-            if(!(existYear.includes((parseInt(v['公開年度'])+1).toString()))){
-              showData.push(v)
-            }
-          }
+          // else if(this.state.show === 'none'){
+          //   const existYear = new Array()
+          //   for(const node of data){
+          //     if(projectIdIndex.get(v['プロジェクトID']) === projectIdIndex.get(node['プロジェクトID'])){
+          //       existYear.push(node['公開年度'])
+          //     }
+          //   }
+          //   //console.log(existYear)
+          //   if(!(existYear.includes((parseInt(v['公開年度'])+1).toString()))){
+          //     showData.push(v)
+          //   }
+          // }
         })
   
         return (
@@ -190,8 +205,7 @@ class Chart extends React.Component {
                 <b>表示方法 : </b>
                 <select name="select" id="select" defalutValue="default" onChange ={(event)=>{this.setState({show:event.target.value})}}>
                   <option value="default">default</option>
-                  <option value="up">up</option>
-                  <option value="down">down</option>
+                  <option value="ministry">ministry</option>
                   <option value="none">none</option>
                 </select>
               </div>
@@ -307,7 +321,7 @@ class Chart extends React.Component {
   
     componentDidMount() {
       const url =
-        "./data/tsne.json";
+        "./data/tsne_+_clusters_list_in_ministries.json";
       window
         .fetch(url)
         .then(response => response.json())
