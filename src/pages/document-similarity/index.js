@@ -7,7 +7,7 @@ class Chart extends React.Component {
       this.state={
         count : '0',
         filterKeyword : '',
-        policy : '',
+        policy : 'ALL',
         reportYear : '',
         show : 'default',
         hideMinistries : new Set(),
@@ -41,13 +41,26 @@ class Chart extends React.Component {
         else if(this.state.show === 'ministry'){
           const clusters = new Set()
           for (const node of data){
-            clusters.add(node.cluster)
+            clusters.add(node.cluster_in_ministry)
           }
           const clusterIndex = new Map(
             Array.from(clusters).map((cluster,i)=>[cluster,i])
           )
           for(const node of data){
-            const index = clusterIndex.get(node.cluster)
+            const index = clusterIndex.get(node.cluster_in_ministry)
+            node.fillColor = d3.hsl(360*(index/clusters.size),0.5,0.5,0.6).toString()
+          }
+        }
+        else if(this.state.show === 'business'){
+          const clusters = new Set()
+          for (const node of data){
+            clusters.add(node[this.state.policy])
+          }
+          const clusterIndex = new Map(
+            Array.from(clusters).map((cluster,i)=>[cluster,i])
+          )
+          for(const node of data){
+            const index = clusterIndex.get(node[this.state.policy])
             node.fillColor = d3.hsl(360*(index/clusters.size),0.5,0.5,0.6).toString()
           }
         }
@@ -87,14 +100,14 @@ class Chart extends React.Component {
             !this.state.hideMinistries.has(v['府省庁'])
           )
         }).filter((v,i)=>{
-          if(v['事業名'].includes(this.state.filterKeyword)===true){
+          if(v['事業名'].includes(this.state.filterKeyword)===true || v['事業の目的'].includes(this.state.filterKeyword)===true){
             return true
           }
           else{
             return false
           }
         }).filter((v,i)=>{
-          if(this.state.policy === ""){
+          if(this.state.policy === "ALL"){
             return true
           }
           else{
@@ -113,44 +126,7 @@ class Chart extends React.Component {
             return false
           }
         }).map((v,i)=>{
-          if(this.state.show === 'default' || this.state.show === 'ministry'){
-            showData.push(v)
-          }
-          //前年度に比べ執行額が増えたとき
-          // else if(this.state.show === 'up'){
-          //   for(const node of data){
-          //     if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
-          //       if(v['執行額']<node['執行額']){
-          //         showData.push(v)
-          //       }
-          //       break
-          //     }
-          //   }
-          // }
-          //前年度に比べ執行額が減ったとき
-          // else if(this.state.show === 'down'){
-          //   for(const node of data){
-          //     if(v['事業名'] === node['事業名'] && parseInt(node['公開年度']) - parseInt(v['公開年度']) === 1){
-          //       if(node['執行額']<v['執行額']){
-          //         showData.push(v)
-          //       }
-          //       break
-          //     }
-          //   }
-          // }
-          // 翌年度にその事業がないとき
-          // else if(this.state.show === 'none'){
-          //   const existYear = new Array()
-          //   for(const node of data){
-          //     if(projectIdIndex.get(v['プロジェクトID']) === projectIdIndex.get(node['プロジェクトID'])){
-          //       existYear.push(node['公開年度'])
-          //     }
-          //   }
-          //   //console.log(existYear)
-          //   if(!(existYear.includes((parseInt(v['公開年度'])+1).toString()))){
-          //     showData.push(v)
-          //   }
-          // }
+          showData.push(v)
         })
   
         return (
@@ -158,46 +134,14 @@ class Chart extends React.Component {
             <div className='refine'>
               <div>
                 <b>年度 : </b>
-                <select name="select" id="select" defalutValue="" onChange ={(event)=>{this.setState({reportYear:event.target.value})}}>
-                  <option value=""></option>
-                  <option value="2015">27年度</option>
-                  <option value="2016">28年度</option>
-                  <option value="2017">29年度</option>
-                  <option value="2018">30年度</option>
-                  <option value="2019">31年度</option>
+                <select name='select' id='select' defalutValue='' onChange ={(event)=>{this.setState({reportYear:event.target.value})}}>
+                  <option value=''></option>
+                  <option value='2015'>27年度</option>
+                  <option value='2016'>28年度</option>
+                  <option value='2017'>29年度</option>
+                  <option value='2018'>30年度</option>
+                  <option value='2019'>31年度</option>
                   </select>
-              </div>
-            </div>
-            <div className='refine'>
-              <div>
-                <b>主要政策・施策 : </b>
-                <select name="select" id="select" defalutValue="" onChange ={(event)=>{this.setState({policy:event.target.value})}}>
-                  <option value="">ALL</option>
-                  <option value="高齢社会対策">高齢社会対策</option>
-                  <option value="男女共同参画">男女共同参画</option>
-                  <option value="少子化社会対策">少子化社会対策</option>
-                  <option value="子ども・若者育成支援">子ども・若者育成支援</option>
-                  <option value="国土強靱化施策">国土強靱化施策</option>
-                  <option value="障害者施策">障害者施策</option>
-                  <option value="地方創生">地方創生</option>
-                  <option value="科学技術・イノベーション">科学技術・イノベーション</option>
-                  <option value="ＩＴ戦略">ＩＴ戦略</option>
-                  <option value="一億総活躍推進">一億総活躍推進</option>
-                  <option value="海洋政策">海洋政策</option>
-                  <option value="観光立国">観光立国</option>
-                  <option value="宇宙開発利用">宇宙開発利用</option>
-                  <option value="地球温暖化対策">地球温暖化対策</option>
-                  <option value="ＯＤＡ">ＯＤＡ</option>
-                  <option value="自殺対策">自殺対策</option>
-                  <option value="医療分野の研究開発関連">医療分野の研究開発関連</option>
-                  <option value="沖縄振興">沖縄振興</option>
-                  <option value="知的財産">知的財産</option>
-                  <option value="2020年東京オリパラ">2020年東京オリパラ</option>
-                  <option value="犯罪被害者等施策">犯罪被害者等施策</option>
-                  <option value="クールジャパン">クールジャパン</option>
-                  <option value="食育推進">食育推進</option>
-                  <option value="その他">その他</option>
-                </select>
               </div>
             </div>
             <div className='refine'>
@@ -206,7 +150,40 @@ class Chart extends React.Component {
                 <select name="select" id="select" defalutValue="default" onChange ={(event)=>{this.setState({show:event.target.value})}}>
                   <option value="default">default</option>
                   <option value="ministry">ministry</option>
+                  <option value="business">business</option>
                   <option value="none">none</option>
+                </select>
+              </div>
+            </div>
+            <div className='refine'>
+              <div>
+                <b>主要政策・施策 : </b>
+                <select name='select' id='select' defalutValue='ALL' onChange ={(event)=>{this.setState({policy:event.target.value})}}>
+                  <option value='ALL'>ALL</option>
+                  <option value='高齢社会対策'>高齢社会対策</option>
+                  <option value='男女共同参画'>男女共同参画</option>
+                  <option value='少子化社会対策'>少子化社会対策</option>
+                  <option value='子ども・若者育成支援'>子ども・若者育成支援</option>
+                  <option value='国土強靱化施策'>国土強靱化施策</option>
+                  <option value='障害者施策'>障害者施策</option>
+                  <option value='地方創生'>地方創生</option>
+                  <option value='科学技術・イノベーション'>科学技術・イノベーション</option>
+                  <option value='ＩＴ戦略'>ＩＴ戦略</option>
+                  <option value='一億総活躍推進'>一億総活躍推進</option>
+                  <option value='海洋政策'>海洋政策</option>
+                  <option value='観光立国'>観光立国</option>
+                  <option value='宇宙開発利用'>宇宙開発利用</option>
+                  <option value='地球温暖化対策'>地球温暖化対策</option>
+                  <option value='ＯＤＡ'>ＯＤＡ</option>
+                  <option value='自殺対策'>自殺対策</option>
+                  <option value='医療分野の研究開発関連'>医療分野の研究開発関連</option>
+                  <option value='沖縄振興'>沖縄振興</option>
+                  <option value='知的財産'>知的財産</option>
+                  <option value='2020年東京オリパラ'>2020年東京オリパラ</option>
+                  <option value='犯罪被害者等施策'>犯罪被害者等施策</option>
+                  <option value='クールジャパン'>クールジャパン</option>
+                  <option value='食育推進'>食育推進</option>
+                  <option value='その他'>その他</option>
                 </select>
               </div>
             </div>
@@ -318,10 +295,10 @@ class Chart extends React.Component {
         data: null
       };
     }
-  
+    
     componentDidMount() {
       const url =
-        "./data/tsne_+_clusters_list_in_ministries.json";
+        "./data/tsne_+_clusters_list.json";
       window
         .fetch(url)
         .then(response => response.json())
